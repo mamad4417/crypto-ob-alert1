@@ -4,8 +4,8 @@ import aiohttp
 from order_block import detect_new_order_blocks
 
 COINS_URL="https://api.coingecko.com/api/v3/coins/markets"
-EXCHANGE_URL="https://api.binance.com/api/v3/exchangeInfo"
-KLINES_URL="https://api.binance.com/api/v3/klines"
+EXCHANGE_URL="https://data-api.binance.vision/api/v3/exchangeInfo"
+KLINES_URL="https://data-api.binance.vision/api/v3/klines"
 TG_URL="https://api.telegram.org/bot{}/sendMessage"
 
 TOP_N=int(os.getenv("TOP_N","250"))
