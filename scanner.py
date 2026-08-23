@@ -7,7 +7,6 @@ COINS_URL="https://api.coingecko.com/api/v3/coins/markets"
 EXCHANGE_URL="https://data-api.binance.vision/api/v3/exchangeInfo"
 KLINES_URL="https://data-api.binance.vision/api/v3/klines"
 TG_URL="https://api.telegram.org/bot{}/sendMessage"
-
 TOP_N=int(os.getenv("TOP_N","250"))
 SENS=int(os.getenv("SENSITIVITY","28"))
 GAP=int(os.getenv("OB_GAP_BARS","5"))
