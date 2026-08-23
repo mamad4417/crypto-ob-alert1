@@ -7,6 +7,7 @@ COINS_URL="https://api.coingecko.com/api/v3/coins/markets"
 EXCHANGE_URL="https://data-api.binance.vision/api/v3/exchangeInfo"
 KLINES_URL="https://data-api.binance.vision/api/v3/klines"
 TG_URL="https://api.telegram.org/bot{}/sendMessage"
+
 TOP_N=int(os.getenv("TOP_N","250"))
 SENS=int(os.getenv("SENSITIVITY","28"))
 GAP=int(os.getenv("OB_GAP_BARS","5"))
@@ -79,6 +80,7 @@ async def main():
                                      connector=aiohttp.TCPConnector(limit=30)) as session:
         coins=await top_coins(session)
         valid=await binance_symbols(session)
+        await send_telegram(session,"✅ Test message: scanner is running and connected to Telegram.")
         tasks=[]; sem=asyncio.Semaphore(20)
         for coin in coins:
             pair=coin["symbol"].upper()+"USDT"
