@@ -80,7 +80,6 @@ async def main():
                                      connector=aiohttp.TCPConnector(limit=30)) as session:
         coins=await top_coins(session)
         valid=await binance_symbols(session)
-        await send_telegram(session,"✅ Test message: scanner is running and connected to Telegram.")
         tasks=[]; sem=asyncio.Semaphore(20)
         for coin in coins:
             pair=coin["symbol"].upper()+"USDT"
