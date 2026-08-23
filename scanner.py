@@ -1,4 +1,4 @@
-import asyncio, os, time
+import asyncio, os, time, json
 from datetime import datetime, timezone
 import aiohttp
 from order_block import detect_new_order_blocks
@@ -7,12 +7,24 @@ COINS_URL="https://api.coingecko.com/api/v3/coins/markets"
 EXCHANGE_URL="https://data-api.binance.vision/api/v3/exchangeInfo"
 KLINES_URL="https://data-api.binance.vision/api/v3/klines"
 TG_URL="https://api.telegram.org/bot{}/sendMessage"
+STATE_FILE="state.json"
 
 TOP_N=int(os.getenv("TOP_N","250"))
 SENS=int(os.getenv("SENSITIVITY","28"))
 GAP=int(os.getenv("OB_GAP_BARS","5"))
 TOKEN=os.environ["TELEGRAM_BOT_TOKEN"]
 CHAT=os.environ["TELEGRAM_CHAT_ID"]
+
+def load_state():
+    try:
+        with open(STATE_FILE,"r") as f:
+            return json.load(f)
+    except (FileNotFoundError,json.JSONDecodeError):
+        return {}
+
+def save_state(state):
+    with open(STATE_FILE,"w") as f:
+        json.dump(state,f)
 
 async def get_json(session,url,params=None):
     for attempt in range(4):
@@ -56,11 +68,15 @@ def should_scan(interval):
     if interval=="1w": return now.weekday()==0 and now.hour in (0,1)
     return False
 
-async def process(session,coin,pair,interval,label,sem):
+async def process(session,coin,pair,interval,label,sem,state):
     async with sem:
         try:
             rows=await klines(session,pair,interval)
             for ob in detect_new_order_blocks(rows,SENS,GAP):
+                key=f"{pair}:{interval}:{ob['side']}"
+                if state.get(key)==ob["created_open_time"]:
+                    continue  # already notified for this exact candle
+                state[key]=ob["created_open_time"]
                 dt=datetime.fromtimestamp(ob["created_open_time"]/1000,timezone.utc)
                 icon="🟢" if ob["side"]=="BULLISH" else "🔴"
                 text=(f"{icon} NEW {ob['side']} ORDER BLOCK\n\n"
@@ -75,6 +91,7 @@ async def process(session,coin,pair,interval,label,sem):
             print("ERROR",pair,interval,repr(e))
 
 async def main():
+    state=load_state()
     timeout=aiohttp.ClientTimeout(total=45)
     async with aiohttp.ClientSession(timeout=timeout,
                                      connector=aiohttp.TCPConnector(limit=30)) as session:
@@ -86,9 +103,10 @@ async def main():
             if pair not in valid: continue
             for interval,label in (("4h","4H"),("1d","1D"),("1w","1W")):
                 if should_scan(interval):
-                    tasks.append(process(session,coin,pair,interval,label,sem))
+                    tasks.append(process(session,coin,pair,interval,label,sem,state))
         print(f"Scanning {len(tasks)} checks.")
         await asyncio.gather(*tasks)
+    save_state(state)
 
 if __name__=="__main__":
     asyncio.run(main())
